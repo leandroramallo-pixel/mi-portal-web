@@ -97,6 +97,16 @@ test('búsqueda sin tildes encuentra localidades intermedias',()=>{
   assert.ok(engine.query({search:'salsipuedes',company:'EDER SERVICIO DIFERENCIAL'}).length);
   assert.equal(R.normalize('Córdoba – Río Ceballos'),'CORDOBA RIO CEBALLOS');
 });
+test('San Nicolás unifica la tilde y ofrece la línea Sarmiento por Colectora',()=>{
+  assert.equal(R.normalize('San Nicolás'),R.normalize('San Nicolas'));
+  const filters={origin:'loc-1',destination:'loc-1452',corridor:'PUNILLA',company:'EMPRESA SARMIENTO S.R.L.'};
+  const line='CÓRDOBA - MALAGUEÑO - CARLOS PAZ';
+  assert.ok(engine.facet('line',filters).includes(line));
+  const journeys=engine.query({...filters,line});
+  assert.equal(journeys.length,51);
+  assert.ok(journeys.every(j=>j.service.direction==='I'&&j.model.profile&&j.model.profile.line.includes('Colectora')));
+  assert.ok(journeys.every(j=>!R.normalize(j.service.route).includes('NO INGRESA')));
+});
 test('homónimos no se convierten en una misma parada',()=>{
   assert.notEqual(routes.places['loc-133'].id,routes.places['loc-6208'].id);
   assert.notEqual(engine.label('loc-133'),engine.label('loc-6208'));

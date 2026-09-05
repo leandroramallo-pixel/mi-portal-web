@@ -31,6 +31,13 @@ ALIASES = {
     "VILLA CURA CURA BROCHERO": "VILLA CURA BROCHERO",
 }
 
+# Equivalencias confirmadas donde el nombre oficial de la línea ya determina
+# la variante, aunque el PDF semanal deje vacía la columna de ruta. Se exige
+# corredor, CUIT, línea y variante exactos para no unir recorridos por parecido.
+IMPLICIT_VARIANTS = {
+    ("PUNILLA", "30707307818", "CORDOBA MALAGUENO CARLOS PAZ", "COLECTORA"),
+}
+
 
 def norm(value):
     value = unicodedata.normalize("NFD", str(value or ""))
@@ -330,10 +337,23 @@ def hint_matches(hint, route):
     return bool(a) and a.issubset(b)
 
 
+def implicit_variant_matches(service, profile, hint):
+    """Reconoce solo variantes documentadas cuyo PDF omite la ruta.
+
+    Una aclaración explícita del PDF, por ejemplo ``NO INGRESA``, nunca se
+    reemplaza por esta equivalencia.
+    """
+    if norm(service.get("route")):
+        return False
+    profile_base = re.split(r"\s+(?:X|POR|VIA)\s+", norm(profile["line"]), maxsplit=1)[0]
+    key = (norm(service["corridor"]), cuit(service["cuit"]), norm(service["line"]), norm(hint))
+    return profile_base == norm(service["line"]) and key in IMPLICIT_VARIANTS
+
+
 def route_compatible(service, profile, places):
     route = norm(service.get("route"))
     hint = variant_hint(profile["line"])
-    if hint and not hint_matches(hint, route):
+    if hint and not hint_matches(hint, route) and not implicit_variant_matches(service, profile, hint):
         return False
     if "REFUERZO DESDE" in route or "RESTRICCION" in route or "REST DE TRAFICO" in route:
         return False
