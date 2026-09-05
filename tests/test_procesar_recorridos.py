@@ -55,6 +55,24 @@ class RouteChecks(unittest.TestCase):
         self.assertFalse(MODULE.route_compatible({"route": "POR ALTAS CUMBRES (NO TOCA C. PAZ)"}, profile, places))
         self.assertFalse(MODULE.route_compatible({"route": "REFUERZO DESDE CPC DE ARGUELLO"}, profile, places))
 
+    def test_verified_colectora_variant_can_be_implicit_only_for_the_known_line(self):
+        profile = {
+            "line": "CÓRDOBA - MALAGUEÑO - CARLOS PAZ x Colectora",
+            "stops": [{"place_id": "a"}, {"place_id": "b"}, {"place_id": "c"}],
+        }
+        places = {
+            "a": {"name": "CÓRDOBA", "aliases": []},
+            "b": {"name": "SAN NICOLÁS", "aliases": ["San Nicolas"]},
+            "c": {"name": "CARLOS PAZ", "aliases": []},
+        }
+        service = {
+            "corridor": "PUNILLA", "cuit": "30-70730781-8",
+            "line": "CÓRDOBA - MALAGUEÑO - CARLOS PAZ", "route": "",
+        }
+        self.assertTrue(MODULE.route_compatible(service, profile, places))
+        self.assertFalse(MODULE.route_compatible({**service, "route": "NO INGRESA A SAN NICOLÁS"}, profile, places))
+        self.assertFalse(MODULE.route_compatible({**service, "cuit": "30-00000000-0"}, profile, places))
+
     def test_invalid_travel_time_is_not_a_valid_duration(self):
         self.assertIsNone(MODULE.minutes(-0.01))
         self.assertIsNone(MODULE.minutes(None))
